@@ -13,6 +13,14 @@ NASA TLEから人工衛星の軌道要素を読み込んで，任意の時間に
 
 This software caluculates a position(latitude & longitude) of a satellite. 
 In addition, this software show us how we see the satellite from ground.
-Date source is NASA Tow Line Elements(TLE). This format includes satellite's 
+Data source is NASA Tow Line Elements(TLE). This format includes satellite's 
 orbital elements. 
- 
+
+## Requirements
+* Python 3
+* sgp4 package
+
+You can install sgp4 package with pip.
+```
+pip3 install sgp4
+```
