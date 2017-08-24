@@ -17,7 +17,7 @@ Data source is NASA Tow Line Elements(TLE). This format includes satellite's
 orbital elements. 
 
 ## Requirements
-* Python 3
+* Python 3.5 or 3.6
 * sgp4 package
 
 You can install sgp4 package with pip.
