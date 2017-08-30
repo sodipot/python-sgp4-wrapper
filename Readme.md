@@ -19,8 +19,10 @@ orbital elements.
 ## Requirements
 * Python 3.5 or 3.6
 * sgp4 package
+* numpy package
 
-You can install sgp4 package with pip.
+You can install sgp4 and numpy package with pip.
 ```
 pip3 install sgp4
+pip3 install numpy
 ```
