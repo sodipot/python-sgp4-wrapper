@@ -11,8 +11,8 @@ def deg2cartesian(lat, lon, h):
     """convert lot & lag to earth centered xyz position"""
     f = 1 / 298.257223563
     a = 6378137
-    phi = lat * pi / 180
-    lamda = lon * pi / 180
+    phi = np.deg2rad(lat) 
+    lamda = np.deg2rad(lon) 
     e = sqrt(2 * f - f * f)
     N = a / sqrt(1 - (e * sin(phi)) ** 2)
 
@@ -63,3 +63,17 @@ def sat2cartesian(xs, ys, zs, year, month, day, hour, minute, sec):
     """
 
     Tg = _gstime(jday(year, month, day, hour, minute, sec))
+
+    conv = np.array([[np.cos(Tg), np.sin(Tg), 0],[-np.sin(Tg), np.cos(Tg), 0], [0, 0, 1]])
+    source = np.array([[xs], [ys], [zs]])
+    result = np.zeros((3,1))
+
+    np.dot(conv, source, out = result)
+
+    result = np.ndarray.tolist(result)
+
+    return result
+
+
+
+
