@@ -22,7 +22,7 @@ def deg2cartesian(lat, lon, h):
 
     return (x, y, z)
 
-def deg2geometry(position,a=6378137.0,f=(1/298.257222101)):
+def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
     """this function convert decalt coordinates to Geodetic coordinates"""
     """http://www2.nc-toyama.ac.jp/~mkawai/htmlsample/coordinate/transformcg/index.html"""
     L = np.rad2deg(np.arctan(position[1]/position[0]))
@@ -56,7 +56,7 @@ def deg2geometry(position,a=6378137.0,f=(1/298.257222101)):
 
     return coordinate
 
-def sat2cartesian(xs, ys, zs, year, month, day, hour, minute, sec):
+def sat2cartesian(position, datetime):
     """
     Convert sgp4 output(x faces vernal equinox) to earth centerd
     cartesian position(x faces prime meridian)
@@ -74,6 +74,4 @@ def sat2cartesian(xs, ys, zs, year, month, day, hour, minute, sec):
 
     return result
 
-
-
-
+    """TODO 関数統合"""
