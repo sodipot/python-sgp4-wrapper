@@ -1,26 +1,10 @@
 from math import sqrt, sin, cos, atan, pi
 from sgp4.propagation import _gstime
 from sgp4.ext import jday
-from sgp4.earth_gravity import wgs72
 from sgp4.io import twoline2rv
 
 import numpy as np
 
-
-def deg2cartesian(lat, lon, h):
-    """convert lot & lag to earth centered xyz position"""
-    f = 1 / 298.257223563
-    a = 6378137
-    phi = np.deg2rad(lat) 
-    lamda = np.deg2rad(lon) 
-    e = sqrt(2 * f - f * f)
-    N = a / sqrt(1 - (e * sin(phi)) ** 2)
-
-    x = (N + h) * cos(phi) * cos(lamda)
-    y = (N + h) * cos(phi) * sin(lamda)
-    z = (N * (1 - e ** 2) + h) * sin(phi)
-
-    return (x, y, z)
 
 def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
     """this function convert decalt coordinates to Geodetic coordinates"""
@@ -56,22 +40,83 @@ def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
 
     return coordinate
 
-def sat2cartesian(position, datetime):
+def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 298.257223563)):
     """
-    Convert sgp4 output(x faces vernal equinox) to earth centerd
-    cartesian position(x faces prime meridian)
+    Return Satellites direction.
+
+    input
+        viewposition(touple): (latitude, longtitude, height)
+        satposition(touple): (x, y, z)
+        datetime:(touple): (year, month, date, hour, minute, second)
+
+    output
+        direction(touple): (azimuth, elevation)
     """
 
-    Tg = _gstime(jday(year, month, day, hour, minute, sec))
+    #calculate the viewer's position in xyz
+    phi = np.deg2rad(viewposition[0]) 
+    lamda = np.deg2rad(viewposition[1]) 
+    e = np.sqrt(2 * f - f * f)
+    N = a / np.sqrt(1 - (e * sin(phi)) ** 2)
 
-    conv = np.array([[np.cos(Tg), np.sin(Tg), 0],[-np.sin(Tg), np.cos(Tg), 0], [0, 0, 1]])
-    source = np.array([[xs], [ys], [zs]])
-    result = np.zeros((3,1))
+    ground_x = (N + viewposition[2]) * np.cos(phi) * np.cos(lamda)
+    ground_y = (N + viewposition[2]) * np.cos(phi) * np.sin(lamda)
+    ground_z = (N * (1 - e ** 2) + viewposition[2]) * sin(phi)
+    print("観測点の地心直交座標は" + str((ground_x, ground_y, ground_z)))
 
-    np.dot(conv, source, out = result)
 
-    result = np.ndarray.tolist(result)
+    #calculate the satellite's position in xyz(x faces prime meridian)
+    Tg = np.deg2rad(_gstime(jday(datetime[0], datetime[1], datetime[2], datetime[3], datetime[4], datetime[5])))
 
-    return result
+    conv1 = np.array([[np.cos(Tg), np.sin(Tg), 0],[-np.sin(Tg), np.cos(Tg), 0], [0, 0, 1]])
+    source = np.asarray(satposition).reshape(3,1)
 
-    """TODO 関数統合"""
+    coordinate = np.dot(conv1, source)
+    print("衛星の地心直交座標は" + str(coordinate))
+
+
+    #calculate the relative position vector and the distance from surface
+    rvec = coordinate - np.array([ground_x, ground_y, ground_z]).reshape(3,1)
+    Er = np.linalg.norm(rvec)
+    print("衛星までの距離は" + str(Er) + "m")
+
+    #calcultate the relative position of satellite
+    conv2 = np.array([[np.cos(lamda), np.sin(lamda), 0], [-np.sin(lamda), np.cos(lamda), 0], [0, 0, 1]])
+    conv3 = np.array([[np.sin(phi), 0, -np.cos(phi)], [0, 1, 0], [np.cos(phi), 0, np.sin(phi)]])
+
+    rdirection = np.dot(conv3, np.dot(conv2, rvec))
+    if(rdirection[0] >= 0):
+        print("x>=0であった。")
+        print("未補正方位角は" + str(float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])))))
+        azimuth = float(np.rad2deg(np.atan(-rdirection[1] / rdirection[0])) - 180)
+    else:
+        print("x<0であった。")
+        print("未補正方位角は" + str(float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])))))
+        azimuth = float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])) + 180)
+
+    E1 = rdirection[2] / Er
+    elevation = float(np.arctan(E1 / np.sqrt(1 - np.power(E1, 2))))
+
+    return (azimuth, elevation)
+
+
+if __name__ == "__main__":
+    from sgp4.earth_gravity import wgs84
+    from sgp4.io import twoline2rv
+
+    viewposition = (35.885908, 139.844885, 40.883)
+    datetime = (2017, 10, 4, 15, 13, 50)
+    
+    line1 = '1 41932U 98067KU  17272.13766631  .00039990  00000-0  44145-3 0  9992'
+    line2 = '2 41932 051.6389 231.8839 0003424 312.5715 047.4990 15.62655094039776'
+
+    satellite = twoline2rv(line1, line2, wgs84)
+    position, velocity = satellite.propagate(2017, 10, 4, 15, 13, 50)
+    if(satellite.error == 0):
+        azimuth, elevation = sat2direction(viewposition, position, datetime)
+        print("衛星名称: TO-89")
+        print("方位角: " + str(azimuth) + "度")
+        print("仰角: " + str(elevation)+ "度")
+    else:
+        print("error at propagate")
+    
