@@ -40,6 +40,8 @@ def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
 
     return coordinate
 
+
+
 def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 298.257223563)):
     """
     Return Satellites direction.
@@ -62,7 +64,6 @@ def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 2
     ground_x = (N + viewposition[2]) * np.cos(phi) * np.cos(lamda)
     ground_y = (N + viewposition[2]) * np.cos(phi) * np.sin(lamda)
     ground_z = (N * (1 - e ** 2) + viewposition[2]) * sin(phi)
-    print("観測点の地心直交座標は" + str((ground_x, ground_y, ground_z)))
 
 
     #calculate the satellite's position in xyz(x faces prime meridian)
@@ -72,13 +73,11 @@ def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 2
     source = np.asarray(satposition).reshape(3,1)
 
     coordinate = np.dot(conv1, source)
-    print("衛星の地心直交座標は" + str(coordinate))
 
 
     #calculate the relative position vector and the distance from surface
     rvec = coordinate - np.array([ground_x, ground_y, ground_z]).reshape(3,1)
     Er = np.linalg.norm(rvec)
-    print("衛星までの距離は" + str(Er) + "m")
 
     #calcultate the relative position of satellite
     conv2 = np.array([[np.cos(lamda), np.sin(lamda), 0], [-np.sin(lamda), np.cos(lamda), 0], [0, 0, 1]])
@@ -86,12 +85,8 @@ def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 2
 
     rdirection = np.dot(conv3, np.dot(conv2, rvec))
     if(rdirection[0] >= 0):
-        print("x>=0であった。")
-        print("未補正方位角は" + str(float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])))))
-        azimuth = float(np.rad2deg(np.atan(-rdirection[1] / rdirection[0])) - 180)
+        azimuth = float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])) - 180)
     else:
-        print("x<0であった。")
-        print("未補正方位角は" + str(float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])))))
         azimuth = float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])) + 180)
 
     E1 = rdirection[2] / Er
@@ -112,9 +107,13 @@ if __name__ == "__main__":
 
     satellite = twoline2rv(line1, line2, wgs84)
     position, velocity = satellite.propagate(2017, 10, 4, 15, 13, 50)
+    position = list(position)
+    position[0] *= 1000
+    position[1] *= 1000
+    position[2] *= 1000
+    
     if(satellite.error == 0):
         azimuth, elevation = sat2direction(viewposition, position, datetime)
-        print("衛星名称: TO-89")
         print("方位角: " + str(azimuth) + "度")
         print("仰角: " + str(elevation)+ "度")
     else:
