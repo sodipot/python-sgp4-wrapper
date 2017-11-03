@@ -98,3 +98,7 @@ ENV/
 # mypy
 .mypy_cache/
 .vscode/launch.json
+.vs/ProjectSettings.json
+.vs/slnx.sqlite
+.vs/VSWorkspaceState.json
+.vs/ITF_SatTracker/v15/.suo
