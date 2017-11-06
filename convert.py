@@ -40,6 +40,25 @@ def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
 
     return coordinate
 
+def deg2cartesian(observer, a = 6378137.0, f = (1 / 298.257223563)):
+    """
+    This function returns observer's position in cartesian.
+
+    input:
+        observer(array): [latitude, longtitude, height]
+
+    output: [x, y, z]
+    """
+    phi = np.deg2rad(observer[0]) 
+    lamda = np.deg2rad(observer[1]) 
+    e = np.sqrt(2 * f - f * f)
+    N = a / np.sqrt(1 - (e * sin(phi)) ** 2)
+
+    ground_x = (N + observer[2]) * np.cos(phi) * np.cos(lamda)
+    ground_y = (N + observer[2]) * np.cos(phi) * np.sin(lamda)
+    ground_z = (N * (1 - e ** 2) + observer[2]) * sin(phi)
+
+    return [ground_x, ground_y, ground_z]
 
 
 def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 298.257223563)):
@@ -54,17 +73,6 @@ def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 2
     output
         direction(touple): (azimuth, elevation)
     """
-
-    #calculate the viewer's position in xyz
-    phi = np.deg2rad(viewposition[0]) 
-    lamda = np.deg2rad(viewposition[1]) 
-    e = np.sqrt(2 * f - f * f)
-    N = a / np.sqrt(1 - (e * sin(phi)) ** 2)
-
-    ground_x = (N + viewposition[2]) * np.cos(phi) * np.cos(lamda)
-    ground_y = (N + viewposition[2]) * np.cos(phi) * np.sin(lamda)
-    ground_z = (N * (1 - e ** 2) + viewposition[2]) * sin(phi)
-
 
     #calculate the satellite's position in xyz(x faces prime meridian)
     Tg = np.deg2rad(_gstime(jday(datetime[0], datetime[1], datetime[2], datetime[3], datetime[4], datetime[5])))
