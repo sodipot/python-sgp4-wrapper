@@ -3,6 +3,8 @@ from sgp4.propagation import _gstime
 from sgp4.ext import jday
 from sgp4.io import twoline2rv
 
+from datetime import datetime
+
 import numpy as np
 
 
@@ -40,7 +42,7 @@ def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
 
     return coordinate
 
-def deg2cartesian(observer, a = 6378137.0, f = (1 / 298.257223563)):
+def deg2ecef(observer, a = 6378137.0, f = (1 / 298.257223563)):
     """
     This function returns observer's position in cartesian.
 
@@ -60,6 +62,29 @@ def deg2cartesian(observer, a = 6378137.0, f = (1 / 298.257223563)):
 
     return [ground_x, ground_y, ground_z]
 
+def sat2ecef(satellite, date):
+    """
+    Calculate satellite's position in ecef(Earth Centered Earth Fixed)
+
+    input:
+        satellite(array): [x, y, z]
+        date(datetime)
+
+    output:
+        position(numpy array): [x, y, z]
+    """
+    jdut1 = jday(date.year, date.month, date.day, date.hour, date.minute, date.second)
+    Tg = _gstime(jdut1)
+
+    conv1 = np.array([[np.cos(Tg), np.sin(Tg), 0],\
+                      [-np.sin(Tg), np.cos(Tg), 0],\
+                      [0, 0, 1]])
+    source = np.array([[satellite[0]], [satellite[1]], satellite[2]])
+
+    coordinates = np.dot(conv1, source)
+
+    return coordinates
+
 
 def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 298.257223563)):
     """
@@ -74,22 +99,17 @@ def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 2
         direction(touple): (azimuth, elevation)
     """
 
-    #calculate the satellite's position in xyz(x faces prime meridian)
-    Tg = np.deg2rad(_gstime(jday(datetime[0], datetime[1], datetime[2], datetime[3], datetime[4], datetime[5])))
-
-    conv1 = np.array([[np.cos(Tg), np.sin(Tg), 0],[-np.sin(Tg), np.cos(Tg), 0], [0, 0, 1]])
-    source = np.asarray(satposition).reshape(3,1)
-
-    coordinate = np.dot(conv1, source)
-
-
     #calculate the relative position vector and the distance from surface
     rvec = coordinate - np.array([ground_x, ground_y, ground_z]).reshape(3,1)
     Er = np.linalg.norm(rvec)
 
     #calcultate the relative position of satellite
-    conv2 = np.array([[np.cos(lamda), np.sin(lamda), 0], [-np.sin(lamda), np.cos(lamda), 0], [0, 0, 1]])
-    conv3 = np.array([[np.sin(phi), 0, -np.cos(phi)], [0, 1, 0], [np.cos(phi), 0, np.sin(phi)]])
+    conv2 = np.array([[np.cos(lamda), np.sin(lamda), 0],\
+                      [-np.sin(lamda), np.cos(lamda), 0],\
+                      [0, 0, 1]])
+    conv3 = np.array([[np.sin(phi), 0, -np.cos(phi)],\
+                      [0, 1, 0],\
+                      [np.cos(phi), 0, np.sin(phi)]])
 
     rdirection = np.dot(conv3, np.dot(conv2, rvec))
     if(rdirection[0] >= 0):
