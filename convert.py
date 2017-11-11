@@ -42,6 +42,14 @@ def deg2geometry(position,a=6378137.0,f=(1/298.257223563)):
 
     return coordinate
 
+def calcTg(date):
+
+    jdut1 = jday(date.year, date.month, date.day, date.hour, date.minute, date.second)
+    Tg = _gstime(jdut1)
+
+    return Tg
+
+
 def deg2ecef(observer, a = 6378137.0, f = (1 / 298.257223563)):
     """
     This function returns observer's position in cartesian.
@@ -56,69 +64,69 @@ def deg2ecef(observer, a = 6378137.0, f = (1 / 298.257223563)):
     e = np.sqrt(2 * f - f * f)
     N = a / np.sqrt(1 - (e * sin(phi)) ** 2)
 
-    ground_x = (N + observer[2]) * np.cos(phi) * np.cos(lamda)
-    ground_y = (N + observer[2]) * np.cos(phi) * np.sin(lamda)
-    ground_z = (N * (1 - e ** 2) + observer[2]) * sin(phi)
+    ground_x = (N + observer[2]) * np.cos(phi) * np.cos(lamda) / 1000
+    ground_y = (N + observer[2]) * np.cos(phi) * np.sin(lamda) / 1000
+    ground_z = (N * (1 - e ** 2) + observer[2]) * sin(phi) / 1000
 
     return [ground_x, ground_y, ground_z]
 
-def sat2ecef(satellite, date):
+def sat2ecef(satellite, Tg):
     """
     Calculate satellite's position in ecef(Earth Centered Earth Fixed)
 
     input:
         satellite(array): [x, y, z]
-        date(datetime)
 
     output:
-        position(numpy array): [x, y, z]
+        position(array): [x, y, z]
     """
-    jdut1 = jday(date.year, date.month, date.day, date.hour, date.minute, date.second)
-    Tg = _gstime(jdut1)
 
-    conv1 = np.array([[np.cos(Tg), np.sin(Tg), 0],\
+    conv1 = np.matrix([[np.cos(Tg), np.sin(Tg), 0],\
                       [-np.sin(Tg), np.cos(Tg), 0],\
                       [0, 0, 1]])
-    source = np.array([[satellite[0]], [satellite[1]], satellite[2]])
+    source = np.matrix([satellite[0], satellite[1], satellite[2]]).transpose()
 
-    coordinates = np.dot(conv1, source)
+    coordinates = conv1 * source 
+    return [coordinates[0,0], coordinates[1,0], coordinates[2,0]] 
 
-    return coordinates
 
-
-def sat2direction(viewposition, satposition, datetime, a = 6378137.0, f = (1 / 298.257223563)):
+def sat2direction(observer, satposition):
     """
     Return Satellites direction.
 
     input
-        viewposition(touple): (latitude, longtitude, height)
+        observer(touple): (latitude, longtitude, height)
         satposition(touple): (x, y, z)
-        datetime:(touple): (year, month, date, hour, minute, second)
 
     output
         direction(touple): (azimuth, elevation)
     """
 
-    #calculate the relative position vector and the distance from surface
-    rvec = coordinate - np.array([ground_x, ground_y, ground_z]).reshape(3,1)
+    phi = np.deg2rad(observer[0])
+    lamda = np.deg2rad(observer[1])
+    height = observer[2]
+    observer_xyz = deg2ecef(observer)
+
+    rvec = np.asmatrix(satposition) - np.asmatrix(observer_xyz) 
     Er = np.linalg.norm(rvec)
+    rvec = rvec.transpose()
 
     #calcultate the relative position of satellite
-    conv2 = np.array([[np.cos(lamda), np.sin(lamda), 0],\
+    conv2 = np.matrix([[np.cos(lamda), np.sin(lamda), 0],\
                       [-np.sin(lamda), np.cos(lamda), 0],\
                       [0, 0, 1]])
-    conv3 = np.array([[np.sin(phi), 0, -np.cos(phi)],\
+    conv3 = np.matrix([[np.sin(phi), 0, -np.cos(phi)],\
                       [0, 1, 0],\
                       [np.cos(phi), 0, np.sin(phi)]])
 
-    rdirection = np.dot(conv3, np.dot(conv2, rvec))
-    if(rdirection[0] >= 0):
-        azimuth = float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])) - 180)
-    else:
-        azimuth = float(np.rad2deg(np.arctan(-rdirection[1] / rdirection[0])) + 180)
+    rdirection = conv3 * conv2 * rvec 
 
-    E1 = rdirection[2] / Er
-    elevation = float(np.arctan(E1 / np.sqrt(1 - np.power(E1, 2))))
+    azimuth = np.arctan(-rdirection[1,0]/rdirection[0,0])
+    azimuth = np.rad2deg(azimuth)
+
+    E1 = rdirection[2,0] / Er
+    elevation = np.arctan(E1 / np.sqrt(1 - E1 * E1))
+    elevation = np.rad2deg(elevation)
 
     return (azimuth, elevation)
 
