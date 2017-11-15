@@ -1,9 +1,6 @@
-from math import sqrt, sin, cos, atan, pi
+from math import sqrt, sin
 from sgp4.propagation import _gstime
 from sgp4.ext import jday
-from sgp4.io import twoline2rv
-
-from datetime import datetime
 
 import numpy as np
 
@@ -50,7 +47,7 @@ def calcTg(date):
     return Tg
 
 
-def deg2ecef(observer, a = 6378137.0, f = (1 / 298.257223563)):
+def deg2ecef(observer, a=6378137.0, f=(1 / 298.257223563)):
     """
     This function returns observer's position in cartesian.
 
@@ -59,8 +56,8 @@ def deg2ecef(observer, a = 6378137.0, f = (1 / 298.257223563)):
 
     output: [x, y, z]
     """
-    phi = np.deg2rad(observer[0]) 
-    lamda = np.deg2rad(observer[1]) 
+    phi = np.deg2rad(observer[0])
+    lamda = np.deg2rad(observer[1])
     e = np.sqrt(2 * f - f * f)
     N = a / np.sqrt(1 - (e * sin(phi)) ** 2)
 
@@ -86,8 +83,8 @@ def sat2ecef(satellite, Tg):
                       [0, 0, 1]])
     source = np.matrix([satellite[0], satellite[1], satellite[2]]).transpose()
 
-    coordinates = conv1 * source 
-    return [coordinates[0,0], coordinates[1,0], coordinates[2,0]] 
+    coordinates = conv1 * source
+    return [coordinates[0, 0], coordinates[1, 0], coordinates[2, 0]]
 
 
 def sat2direction(observer, satposition):
@@ -107,7 +104,7 @@ def sat2direction(observer, satposition):
     height = observer[2]
     observer_xyz = deg2ecef(observer)
 
-    rvec = np.asmatrix(satposition) - np.asmatrix(observer_xyz) 
+    rvec = np.asmatrix(satposition) - np.asmatrix(observer_xyz)
     Er = np.linalg.norm(rvec)
     rvec = rvec.transpose()
 
@@ -119,15 +116,15 @@ def sat2direction(observer, satposition):
                       [0, 1, 0],\
                       [np.cos(phi), 0, np.sin(phi)]])
 
-    rdirection = conv3 * conv2 * rvec 
+    rdirection = conv3 * conv2 * rvec
 
-    azimuth = np.arctan(-rdirection[1,0]/rdirection[0,0])
-    azimuth = np.rad2deg(azimuth)
+    azimuth = np.arctan(-rdirection[1, 0]/rdirection[0, 0])
+    azimuth = np.rad2deg(azimuth) + 180.0
+    if azimuth >= 360.0:
+        azimuth -= 360.0
 
-    E1 = rdirection[2,0] / Er
+    E1 = rdirection[2, 0] / Er
     elevation = np.arctan(E1 / np.sqrt(1 - E1 * E1))
     elevation = np.rad2deg(elevation)
 
     return (azimuth, elevation)
-
-    
