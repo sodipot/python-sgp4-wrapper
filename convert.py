@@ -118,11 +118,7 @@ def sat2direction(observer, satposition):
 
     rdirection = conv3 * conv2 * rvec
 
-    azimuth = np.rad2deg(np.arctan2(-rdirection[1, 0], rdirection[0, 0]))
-    if rdirection[0, 0] < 0:
-        azimuth += 180.0
-    if azimuth < 0:
-        azimuth += 360.0
+    azimuth = 180.0 - np.rad2deg(np.arctan2(rdirection[1, 0], rdirection[0, 0]))
     if azimuth >= 360.0:
         azimuth -= 360.0
 
