@@ -96,7 +96,7 @@ ENV/
 /site
 
 # mypy
+sample.py
 .mypy_cache/
 .vscode/
 .vs/
-sample.py
